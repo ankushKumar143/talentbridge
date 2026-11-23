@@ -18,6 +18,9 @@ const mergeResumeData = (profile) => {
   // Older builds generated this bio from fields shown elsewhere on the page.
   // Remove that duplicate copy so the About section is reserved for user text.
   if (typeof next.about === 'string' && /^resume highlights:/i.test(next.about.trim())) next.about = '';
+  if (!next.about && typeof parsed.summary === 'string' && parsed.summary.trim()) {
+    next.about = parsed.summary.trim();
+  }
   const parsedSkills = parsed.skills;
   if (Array.isArray(parsedSkills) && parsedSkills.length) {
     const skills = Array.isArray(next.skills) ? next.skills.filter((skill) => skill?.source !== 'resume').map((skill) => typeof skill === 'string' ? { n: skill, l: 'Not rated', source: 'profile' } : skill) : [];

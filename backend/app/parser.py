@@ -88,6 +88,7 @@ def extract_degrees(text: str) -> list[str]:
     return [label for label, pattern in DEGREE_PATTERNS if re.search(pattern, text, re.I)]
 
 SECTION_PATTERNS = {
+    "summary": r"^(?:summary|professional summary|profile|career objective|objective|about me)\s*:?\s*$",
     "education": r"^(?:education|academic background|academic qualifications|qualifications)\s*:?\s*$",
     "experience": r"^(?:work experience|professional experience|employment history|experience|internships?)\s*:?\s*$",
     "projects": r"^(?:personal projects|academic projects|projects?)\s*:?\s*$",
@@ -147,7 +148,7 @@ def _parse_education(lines: list[str]) -> dict:
 def _parse_projects(lines: list[str]) -> list[dict]:
     projects = []
     current = None
-    bullet_re = re.compile(r"^\s*[-*•▪◦]\s*")
+    bullet_re = re.compile(r"^\s*[-*•▪◦�]\s*")
     sentence_start = re.compile(r"^(?:built|implemented|developed|designed|created|deployed|configured|added|worked|used|integrated|responsible|contributed|engineered|led|managed|delivered|optimized|improved|•)\b", re.I)
 
     def starts_project(content: str) -> bool:
@@ -155,7 +156,7 @@ def _parse_projects(lines: list[str]) -> list[dict]:
         # new card only for a concise, title-like heading, never for prose.
         if sentence_start.search(content) or content.endswith((".", ";", ",")):
             return False
-        if re.search(r"\s+[—–]\s+", content) or " | " in content:
+        if re.search(r"\s+[—–�]\s+", content) or " | " in content:
             return True
         words = content.split()
         if len(content) <= 90 and len(words) <= 7 and not re.search(r"[.!?]", content):
@@ -167,7 +168,6 @@ def _parse_projects(lines: list[str]) -> list[dict]:
     for raw in lines:
         line = raw.strip()
         if not line: continue
-        is_bullet = bool(bullet_re.match(raw))
         content = bullet_re.sub("", line).strip()
         tech = re.match(r"^(?:tech(?:nology)?\s*stack|technologies|tools)\s*:\s*(.*)$", content, re.I)
         if tech:
@@ -187,7 +187,7 @@ def _parse_projects(lines: list[str]) -> list[dict]:
         if not content: continue
         if current is None or starts_project(content):
             parts = [x.strip() for x in re.split(r"\s*[|]\s*", content) if x.strip()]
-            dash_parts = re.split(r"\s+[—–]\s+", parts[0], maxsplit=1)
+            dash_parts = re.split(r"\s+[—–�]\s+", parts[0], maxsplit=1)
             title = dash_parts[0].strip(" :-–—")
             technologies = []
             inline_description = dash_parts[1].strip() if len(dash_parts) > 1 else ""
@@ -224,12 +224,14 @@ def parse_resume(text: str) -> dict:
             phones.append(phone.strip())
     skills = match_terms(text, SKILLS)
     section = None
-    education_lines, experience_lines, project_lines = [], [], []
+    education_lines, experience_lines, project_lines, summary_lines = [], [], [], []
     for line in lines:
         heading = _section(line)
         if heading:
             section = heading
             continue
+        if section == "summary":
+            summary_lines.append(line)
         degree_found = extract_degrees(line)
         date_range = _date_range(line)
         looks_like_education = bool(degree_found or (_is_institution(line) and date_range))
@@ -254,7 +256,7 @@ def parse_resume(text: str) -> dict:
     projects = _parse_projects(project_lines)
     score_weights = {"name": 10, "email": 10, "phone": 5, "skills": 20, "education": 20, "experience": 15, "projects": 10, "certifications": 5, "portfolio_links": 5}
     checks = {"name": bool(name), "email": bool(emails), "phone": bool(phones), "skills": bool(skills), "education": bool(education["degrees"] or education["colleges"] or education["entries"]), "experience": bool(experience_entries), "projects": bool(projects), "certifications": bool(match_terms(text, ["certification", "certified", "certificate"])), "portfolio_links": bool(urls)}
-    return {"candidate": {"name": name, "emails": emails, "phone_numbers": phones, "urls": urls}, "skills": skills, "education": education, "experience": experience_entries, "projects": projects, "resume_score": {"score": sum(score_weights[k] for k,v in checks.items() if v), "checks": checks}, "limitations": ["Extraction uses local text patterns and a built-in skill list; names, education, and sections may be missed.", "Scanned image PDFs require OCR, which is not enabled."]}
+    return {"candidate": {"name": name, "emails": emails, "phone_numbers": phones, "urls": urls}, "summary": " ".join(summary_lines).strip(), "skills": skills, "education": education, "experience": experience_entries, "projects": projects, "resume_score": {"score": sum(score_weights[k] for k,v in checks.items() if v), "checks": checks}, "limitations": ["Extraction uses local text patterns and a built-in skill list; names, education, and sections may be missed.", "Scanned image PDFs require OCR, which is not enabled."]}
 
 def job_requirements(description: str, skills: list[str]) -> dict:
     desc = clean(description)

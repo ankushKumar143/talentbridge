@@ -1,15 +1,13 @@
 import React, { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import {
-  User,
   GraduationCap,
   FolderGit2,
   Award,
   Plus,
   Check,
   Edit2,
-  Trash2,
-  ExternalLink
+  Trash2
 } from 'lucide-react';
 import Card, { CardHeader } from '../../components/common/Card';
 import ProfileCompletion from '../../components/student/ProfileCompletion';
@@ -229,28 +227,8 @@ export default function StudentProfile() {
               >
                 <div className="flex items-center justify-between">
                   <h4 className="text-sm font-semibold text-ink">{proj.title}</h4>
-                  {proj.link && (
-                    <a
-                      href={proj.link}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-p hover:underline flex items-center gap-1 font-medium"
-                    >
-                      Code <ExternalLink className="w-3 h-3" />
-                    </a>
-                  )}
                 </div>
                 {proj.description && <p className="text-xs text-mute mt-1 leading-relaxed whitespace-pre-line">{proj.description}</p>}
-                <div className="flex flex-wrap gap-1 mt-2.5">
-                  {proj.tags?.map((t) => (
-                    <span
-                      key={t}
-                      className="text-[11px] px-2 py-0.5 rounded-md bg-white border border-line text-ink"
-                    >
-                      {t}
-                    </span>
-                  ))}
-                </div>
               </div>
             ))}
             {!(studentProfile?.projects || []).length && <p className="text-sm text-mute">Upload your resume to extract projects.</p>}

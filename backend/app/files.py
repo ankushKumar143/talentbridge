@@ -1,5 +1,6 @@
 import io
 from pathlib import Path
+from urllib.parse import unquote
 import pdfplumber
 from docx import Document
 from fastapi import HTTPException, UploadFile
@@ -26,7 +27,17 @@ async def extract_upload(file: UploadFile) -> tuple[str, str, bytes]:
                 text += "\n" + "\n".join(" ".join(c.text for c in row.cells) for row in table.rows)
         else:
             with pdfplumber.open(io.BytesIO(data)) as pdf:
-                text = "\n".join(page.extract_text() or "" for page in pdf.pages)
+                page_text = []
+                linked_emails = []
+                for page in pdf.pages:
+                    page_text.append(page.extract_text() or "")
+                    for link in page.hyperlinks or []:
+                        uri = str(link.get("uri") or "")
+                        if uri.lower().startswith("mailto:"):
+                            address = unquote(uri[7:].split("?", 1)[0]).strip()
+                            if address:
+                                linked_emails.append(address)
+                text = "\n".join(page_text + linked_emails)
     except Exception as exc:
         raise HTTPException(400, "Could not read this file. Check that it is a valid, unencrypted document.") from exc
     if not text.strip():
