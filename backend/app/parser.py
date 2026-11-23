@@ -148,6 +148,22 @@ def _parse_projects(lines: list[str]) -> list[dict]:
     projects = []
     current = None
     bullet_re = re.compile(r"^\s*[-*•▪◦]\s*")
+    sentence_start = re.compile(r"^(?:built|implemented|developed|designed|created|deployed|configured|added|worked|used|integrated|responsible|contributed|engineered|led|managed|delivered|optimized|improved|•)\b", re.I)
+
+    def starts_project(content: str) -> bool:
+        # Resume project descriptions often wrap onto several lines. Start a
+        # new card only for a concise, title-like heading, never for prose.
+        if sentence_start.search(content) or content.endswith((".", ";", ",")):
+            return False
+        if re.search(r"\s+[—–]\s+", content) or " | " in content:
+            return True
+        words = content.split()
+        if len(content) <= 90 and len(words) <= 7 and not re.search(r"[.!?]", content):
+            title_words = [word for word in words if word.lower() not in {"and", "of", "for", "in", "with", "to"}]
+            title_case_words = sum(bool(re.match(r"^[A-Z0-9]", word)) for word in title_words)
+            return bool(title_words) and title_case_words / len(title_words) >= 0.7
+        return False
+
     for raw in lines:
         line = raw.strip()
         if not line: continue
@@ -169,20 +185,20 @@ def _parse_projects(lines: list[str]) -> list[dict]:
             content = (content[:url.start()] + content[url.end():]).strip(" -|:")
             if not content: continue
         if not content: continue
-        if current is None or (not is_bullet and not tech):
-            # A heading-like, unbulleted line starts the next project. Bullets
-            # and stack lines belong to the current project.
+        if current is None or starts_project(content):
             parts = [x.strip() for x in re.split(r"\s*[|]\s*", content) if x.strip()]
-            title = parts[0].strip(" :-–—")
+            dash_parts = re.split(r"\s+[—–]\s+", parts[0], maxsplit=1)
+            title = dash_parts[0].strip(" :-–—")
             technologies = []
+            inline_description = dash_parts[1].strip() if len(dash_parts) > 1 else ""
             if len(parts) > 1 and len(parts) <= 3:
                 maybe_stack = parts[1]
                 if re.search(r"\b(stack|mern|mean|react|node|python|java|\.net|flutter)\b", maybe_stack, re.I):
                     technologies.extend(x.strip() for x in re.split(r"[,/+]+", maybe_stack) if x.strip())
-            current = {"title": title[:120] or "Project", "description": "", "technologies": technologies, "link": ""}
+                elif not inline_description:
+                    inline_description = " | ".join(parts[1:])
+            current = {"title": title[:120] or "Project", "description": inline_description, "technologies": technologies, "link": ""}
             projects.append(current)
-            if len(parts) > 1 and not technologies:
-                current["description"] = " | ".join(parts[1:])
         else:
             current["description"] = "\n".join(x for x in (current["description"], content) if x)
     for project in projects:
@@ -197,7 +213,10 @@ def parse_resume(text: str) -> dict:
     name = None
     if lines and len(lines[0].split()) <= 4 and len(lines[0]) <= 60 and not re.search(r"[\d@:/\\]", lines[0]):
         name = lines[0]
-    emails = list(OrderedDict.fromkeys(re.findall(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b", text)))
+    # PDF text extraction can insert spaces around @ and dots when contact
+    # details use separate visual text boxes.
+    email_pattern = r"(?<![A-Za-z0-9._%+-])[A-Za-z0-9._%+-]+\s*@\s*[A-Za-z0-9-]+(?:\s*\.\s*[A-Za-z0-9-]+)+"
+    emails = list(OrderedDict.fromkeys(re.sub(r"\s+", "", value).lower() for value in re.findall(email_pattern, text)))
     urls = list(OrderedDict.fromkeys(re.findall(r"(?:https?://|www\.)[^\s<>]+", text)))
     phones = []
     for phone in re.findall(r"(?<!\d)(?:\+?\d{1,3}[-.\s]?)?(?:\(?\d{3,5}\)?[-.\s]?)?\d{5,10}(?!\d)", text):

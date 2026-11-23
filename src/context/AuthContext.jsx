@@ -11,20 +11,13 @@ const skillKey = (value) => {
   if (['postgres', 'postgresql'].includes(key)) return 'postgresql';
   return key;
 };
-const degreeKey = (value) => {
-  const key = String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-  if (key.includes('computerapplications') || key === 'bca' || key.includes('bachelorofcomputerapplications')) return 'bca';
-  if (key.includes('technology') || key === 'btech' || key === 'mtech') return key.includes('master') || key === 'mtech' ? 'mtech' : 'btech';
-  if (key.includes('engineering') || key === 'be') return 'be';
-  if (key.includes('computerscience') || key === 'bsc' || key === 'msc') return key.includes('master') || key === 'msc' ? 'msc' : 'bsc';
-  if (key.includes('businessadministration') || key === 'mba') return 'mba';
-  if (key === 'mca') return 'mca';
-  return key;
-};
 const mergeResumeData = (profile) => {
   const parsed = profile?.resume?.parsed;
   if (!parsed) return profile;
   const next = { ...profile };
+  // Older builds generated this bio from fields shown elsewhere on the page.
+  // Remove that duplicate copy so the About section is reserved for user text.
+  if (typeof next.about === 'string' && /^resume highlights:/i.test(next.about.trim())) next.about = '';
   const parsedSkills = parsed.skills;
   if (Array.isArray(parsedSkills) && parsedSkills.length) {
     const skills = Array.isArray(next.skills) ? next.skills.filter((skill) => skill?.source !== 'resume').map((skill) => typeof skill === 'string' ? { n: skill, l: 'Not rated', source: 'profile' } : skill) : [];
@@ -42,8 +35,13 @@ const mergeResumeData = (profile) => {
   const colleges = educationEntries.length ? educationEntries.map((item) => item?.institution).filter(Boolean) : (education.colleges || []);
   const degrees = educationEntries.length ? educationEntries.map((item) => item?.degree).filter(Boolean) : (education.degrees || []);
   if (!next.phone && parsed.candidate?.phone_numbers?.length) next.phone = parsed.candidate.phone_numbers[0];
-  if (colleges.length && (!next.college || degreeKey(next.college) === degreeKey(degrees[0]))) next.college = colleges[0];
-  if (degrees.length && (!next.degree || degreeKey(next.degree) === degreeKey(degrees[0]))) next.degree = degrees[0];
+  const priorCollege = next.college;
+  const priorDegree = next.degree;
+  if (colleges.length) next.college = colleges[0];
+  if (degrees.length) next.degree = degrees[0];
+  if (degrees.length && (!next.headline || /\bundergrad\b/i.test(next.headline))) {
+    next.headline = degrees[0];
+  }
   if (!next.cgpa && educationEntries.some((item) => item.score)) next.cgpa = educationEntries.find((item) => item.score)?.score;
 
   const detectedEducation = educationEntries.length ? educationEntries.map((item) => ({
@@ -51,7 +49,14 @@ const mergeResumeData = (profile) => {
   })).filter((item) => item.institution || item.degree) : Array.from({ length: Math.max(colleges.length, degrees.length) }, (_, index) => ({
     institution: colleges[index] || '', degree: degrees[index] || '', duration: 'From resume', score: '', source: 'resume',
   })).filter((item) => item.institution || item.degree);
-  const existingEducation = Array.isArray(next.education) ? next.education.filter((item) => item?.source !== 'resume') : [];
+  const existingEducation = Array.isArray(next.education) ? next.education.filter((item) => {
+    if (item?.source === 'resume') return false;
+    // Drop the old registration-generated single education row when the
+    // uploaded resume now provides the same degree with a better institution.
+    const wasRegistrationPlaceholder = educationEntries.length > 0 && !item?.score &&
+      item?.institution === priorCollege && item?.degree === priorDegree;
+    return !wasRegistrationPlaceholder;
+  }) : [];
   const knownEducation = new Set(existingEducation.map((item) => `${item.institution || ''}|${item.degree || ''}`.toLowerCase()));
   detectedEducation.forEach((item) => {
     const key = `${item.institution}|${item.degree}`.toLowerCase();
@@ -78,13 +83,6 @@ const mergeResumeData = (profile) => {
     if (!knownProjects.has(key)) { existingProjects.push(item); knownProjects.add(key); }
   });
   next.projects = existingProjects;
-  if (!next.about) {
-    const highlights = [next.degree || degrees[0], next.college || colleges[0]].filter(Boolean).join(' at ');
-    const skillSummary = (parsedSkills || []).slice(0, 6).join(', ');
-    const projectSummary = detectedProjects.map((item) => item.title).filter(Boolean).slice(0, 3).join(', ');
-    const summary = [highlights, skillSummary && `Skills include ${skillSummary}`, projectSummary && `Projects include ${projectSummary}`].filter(Boolean);
-    if (summary.length) next.about = `Resume highlights: ${summary.join('. ')}.`;
-  }
   return next;
 };
 const profileFrom = (user) => mergeResumeData({ ...(user?.profile && typeof user.profile === 'object' ? user.profile : {}),

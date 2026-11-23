@@ -27,9 +27,6 @@ export default function Register() {
     name: '',
     email: '',
     password: '',
-    college: '',
-    degree: '',
-    batch: '2027',
   });
 
   const [recruiterForm, setRecruiterForm] = useState({
@@ -67,23 +64,13 @@ export default function Register() {
         password: studentForm.password,
         role: 'student',
         avatar: studentForm.name.trim().slice(0, 2).toUpperCase(),
-        college: studentForm.college.trim(),
-        degree: studentForm.degree.trim(),
-        batch: studentForm.batch,
         phone: '',
-        headline: `${studentForm.degree || 'Computer Science'} Undergrad (${studentForm.batch})`,
+        headline: '',
         about: '',
         resume: null,
         skills: [],
         certifications: [],
-        education: [
-          {
-            institution: studentForm.college.trim(),
-            degree: studentForm.degree.trim(),
-            duration: `2023 - ${studentForm.batch}`,
-            score: ''
-          }
-        ],
+        education: [],
         projects: []
       };
 
@@ -230,28 +217,6 @@ export default function Register() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs font-semibold text-ink mb-1">College / University</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. NIT Bengaluru"
-                      value={studentForm.college}
-                      onChange={(e) => setStudentForm({ ...studentForm, college: e.target.value })}
-                      className="w-full h-10 px-3 rounded-xl border border-line text-sm focus:border-p focus:outline-none"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-ink mb-1">Degree & Major</label>
-                    <input
-                      type="text"
-                      placeholder="e.g. B.Tech Computer Science"
-                      value={studentForm.degree}
-                      onChange={(e) => setStudentForm({ ...studentForm, degree: e.target.value })}
-                      className="w-full h-10 px-3 rounded-xl border border-line text-sm focus:border-p focus:outline-none"
-                    />
-                  </div>
-                </div>
               </>
             ) : (
               <>

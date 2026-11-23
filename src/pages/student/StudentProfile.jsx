@@ -25,20 +25,14 @@ export default function StudentProfile() {
   const { showToast } = useToast();
   const outlet = useOutletContext() || {};
   const parsedResume = studentProfile?.resume?.parsed;
-  const extractedEducation = parsedResume?.education || {};
-  const extractedColleges = Array.isArray(extractedEducation) ? extractedEducation.map((item) => typeof item === 'string' ? item : item?.institution).filter(Boolean) : (extractedEducation.colleges || []);
-  const extractedDegrees = Array.isArray(extractedEducation) ? extractedEducation.map((item) => typeof item === 'string' ? item : item?.degree).filter(Boolean) : (extractedEducation.degrees || []);
   const extractedExperience = parsedResume?.experience || [];
-  const extractedProjects = parsedResume?.projects || [];
+  const displayAbout = /^resume highlights:/i.test(studentProfile?.about || '') ? '' : studentProfile?.about;
 
   const [isEditingInfo, setIsEditingInfo] = useState(false);
   const [formData, setFormData] = useState({
     name: studentProfile?.name || '',
     headline: studentProfile?.headline || '',
     phone: studentProfile?.phone || '',
-    college: studentProfile?.college || '',
-    degree: studentProfile?.degree || '',
-    cgpa: studentProfile?.cgpa || '',
     about: studentProfile?.about || '',
   });
 
@@ -86,9 +80,6 @@ export default function StudentProfile() {
               name: studentProfile?.name || '',
               headline: studentProfile?.headline || '',
               phone: studentProfile?.phone || '',
-              college: studentProfile?.college || '',
-              degree: studentProfile?.degree || '',
-              cgpa: studentProfile?.cgpa || '',
               about: studentProfile?.about || '',
             });
             setIsEditingInfo(true);
@@ -173,47 +164,23 @@ export default function StudentProfile() {
 
         <div className="pt-5 space-y-4">
           <div>
-            <h3 className="text-xs font-semibold text-mute uppercase tracking-wider mb-1.5">
-              About Me
-            </h3>
-            <p className="text-sm text-ink leading-relaxed">
-              {studentProfile?.about}
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-3 border-t border-line/60">
-            <div className="p-3.5 rounded-xl bg-bg border border-line">
-              <span className="text-xs text-mute block font-medium">College</span>
-              <span className="text-sm font-semibold text-ink mt-0.5 block">{studentProfile?.college}</span>
-            </div>
-            <div className="p-3.5 rounded-xl bg-bg border border-line">
-              <span className="text-xs text-mute block font-medium">Degree</span>
-              <span className="text-sm font-semibold text-ink mt-0.5 block">{studentProfile?.degree}</span>
-            </div>
-            <div className="p-3.5 rounded-xl bg-bg border border-line">
-              <span className="text-xs text-mute block font-medium">Academic CGPA</span>
-              <span className="text-sm font-semibold text-p mt-0.5 block">{studentProfile?.cgpa}</span>
-            </div>
+            <h3 className="text-xs font-semibold text-mute uppercase tracking-wider mb-1.5">About Me</h3>
+            {displayAbout ? <p className="text-sm text-ink leading-relaxed">{displayAbout}</p> : <p className="text-sm text-mute">Add a short introduction about yourself.</p>}
           </div>
         </div>
       </Card>
 
       {parsedResume && <Card className="p-5 space-y-4">
         <CardHeader>Resume-extracted details <span className="text-xs font-normal text-mute">· {studentProfile?.resume?.fileName || 'Uploaded resume'}</span></CardHeader>
-        <p className="text-xs text-mute -mt-2">These details were extracted from your resume. Review them and use Edit Profile Info above to correct any missing or inaccurate information.</p>
+        <p className="text-xs text-mute -mt-2">These details were extracted from your resume. Education, skills, and projects are shown in the profile sections below.</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
           <div className="rounded-xl border border-line bg-bg/50 p-3"><span className="text-xs text-mute">Resume name</span><p className="font-medium text-ink mt-1">{parsedResume.candidate?.name || 'Not detected'}</p></div>
           <div className="rounded-xl border border-line bg-bg/50 p-3"><span className="text-xs text-mute">Resume email</span><p className="font-medium text-ink mt-1">{parsedResume.candidate?.emails?.join(', ') || 'Not detected'}</p></div>
           <div className="rounded-xl border border-line bg-bg/50 p-3"><span className="text-xs text-mute">Phone</span><p className="font-medium text-ink mt-1">{parsedResume.candidate?.phone_numbers?.join(', ') || 'Not detected'}</p></div>
-          <div className="rounded-xl border border-line bg-bg/50 p-3"><span className="text-xs text-mute">Resume completeness</span><p className="font-medium text-p mt-1">{parsedResume.resume_score?.score ?? 0}%</p></div>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div><p className="text-xs font-semibold uppercase tracking-wide text-mute mb-2">Education detected</p>{extractedColleges.length || extractedDegrees.length ? <div className="space-y-1 text-sm">{extractedDegrees.map((degree) => <p key={`d-${degree}`} className="text-ink">{degree}</p>)}{extractedColleges.map((college) => <p key={`c-${college}`} className="text-mute">{college}</p>)}</div> : <p className="text-sm text-mute">No education details detected.</p>}</div>
-          <div><p className="text-xs font-semibold uppercase tracking-wide text-mute mb-2">Skills detected</p>{parsedResume.skills?.length ? <div className="flex flex-wrap gap-1.5">{parsedResume.skills.map((skill) => <span key={skill} className="text-xs px-2 py-1 rounded-lg bg-lav text-p">{skill}</span>)}</div> : <p className="text-sm text-mute">No known skills detected.</p>}</div>
+          <div className="rounded-xl border border-line bg-bg/50 p-3"><span className="text-xs text-mute">Resume content score</span><p className="font-medium text-p mt-1">{parsedResume.resume_score?.score ?? 0}%</p></div>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div><p className="text-xs font-semibold uppercase tracking-wide text-mute mb-2">Experience detected</p>{extractedExperience.length ? <ul className="list-disc pl-4 space-y-1 text-sm text-ink">{extractedExperience.map((item, i) => <li key={i}>{typeof item === 'string' ? item : item.summary || [...(item.responsibilities || [])].join('; ') || item.title || 'Experience entry'}</li>)}</ul> : <p className="text-sm text-mute">No experience entries detected.</p>}</div>
-          <div><p className="text-xs font-semibold uppercase tracking-wide text-mute mb-2">Projects detected</p>{extractedProjects.length ? <ul className="list-disc pl-4 space-y-1 text-sm text-ink">{extractedProjects.map((item, i) => <li key={i}>{typeof item === 'string' ? item : [item.title, item.description, ...(item.technologies || [])].filter(Boolean).join(' — ')}</li>)}</ul> : <p className="text-sm text-mute">No project entries detected.</p>}</div>
         </div>
         {parsedResume.limitations?.length > 0 && <p className="text-xs text-mute border-t border-line pt-3">{parsedResume.limitations.join(' ')}</p>}
       </Card>}
@@ -242,6 +209,7 @@ export default function StudentProfile() {
                 <p className="text-xs text-mute mt-0.5">{edu.duration}</p>
               </div>
             ))}
+            {!(studentProfile?.education || []).length && <p className="text-sm text-mute">Upload your resume to extract education details.</p>}
           </div>
         </Card>
 
@@ -272,7 +240,7 @@ export default function StudentProfile() {
                     </a>
                   )}
                 </div>
-                <p className="text-xs text-mute mt-1 leading-relaxed">{proj.description}</p>
+                {proj.description && <p className="text-xs text-mute mt-1 leading-relaxed whitespace-pre-line">{proj.description}</p>}
                 <div className="flex flex-wrap gap-1 mt-2.5">
                   {proj.tags?.map((t) => (
                     <span
@@ -285,6 +253,7 @@ export default function StudentProfile() {
                 </div>
               </div>
             ))}
+            {!(studentProfile?.projects || []).length && <p className="text-sm text-mute">Upload your resume to extract projects.</p>}
           </div>
         </Card>
       </div>
@@ -325,37 +294,6 @@ export default function StudentProfile() {
                 type="text"
                 value={formData.headline}
                 onChange={(e) => setFormData({ ...formData, headline: e.target.value })}
-                className="w-full h-10 px-3 rounded-xl border border-line text-sm focus:border-p focus:outline-none"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-semibold text-ink mb-1">College / University</label>
-                <input
-                  type="text"
-                  value={formData.college}
-                  onChange={(e) => setFormData({ ...formData, college: e.target.value })}
-                  className="w-full h-10 px-3 rounded-xl border border-line text-sm focus:border-p focus:outline-none"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-ink mb-1">CGPA</label>
-                <input
-                  type="text"
-                  value={formData.cgpa}
-                  onChange={(e) => setFormData({ ...formData, cgpa: e.target.value })}
-                  className="w-full h-10 px-3 rounded-xl border border-line text-sm focus:border-p focus:outline-none"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-ink mb-1">Degree & Major</label>
-              <input
-                type="text"
-                value={formData.degree}
-                onChange={(e) => setFormData({ ...formData, degree: e.target.value })}
                 className="w-full h-10 px-3 rounded-xl border border-line text-sm focus:border-p focus:outline-none"
               />
             </div>

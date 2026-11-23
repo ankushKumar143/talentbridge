@@ -24,7 +24,8 @@ export default function ProfileCompletion({ prof = {}, onComplete }) {
 
   return (
     <Card className="p-5 bg-lav/40 border-lav">
-      <CardHeader>Profile completion</CardHeader>
+      <CardHeader>Profile checklist</CardHeader>
+      <p className="text-xs text-mute -mt-2 mb-3">Tracks the items below; it is separate from your resume content score.</p>
       
       <div className="flex flex-col sm:flex-row items-center gap-5">
         <div className="relative w-24 h-24 shrink-0">
