@@ -1,4 +1,5 @@
-﻿from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from datetime import datetime
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 class RegisterRequest(BaseModel):
     name: str = Field(min_length=2, max_length=160)
@@ -38,6 +39,7 @@ class JobOut(BaseModel):
     description: str
     data: dict
     status: str
+    created_at: datetime | None = None
     model_config = ConfigDict(from_attributes=True)
 
 class ApplyRequest(BaseModel):

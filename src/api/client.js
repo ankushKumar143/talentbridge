@@ -38,6 +38,6 @@ export async function apiBlobRequest(path) {
 
 export function uiJobFromApi(job) {
   return { ...job.data, id: job.id, recruiterId: job.recruiter_id, title: job.title, company: job.company,
-    about: job.description, status: job.status, postedDate: 'Recently', description: job.description };
+    about: job.description, status: job.status, createdAt: job.created_at, postedDate: 'Recently', description: job.description };
 }
 

@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Briefcase,
@@ -8,7 +8,6 @@ import {
   XCircle,
   Plus,
   FileText,
-  Building2,
   ArrowRight
 } from 'lucide-react';
 import Card, { CardHeader } from '../../components/common/Card';
@@ -46,6 +45,35 @@ export default function RecruiterOverview() {
 
   const recentApplications = applications.slice(0, 5);
   const recentJobs = jobs.slice(0, 3);
+  const recentActivity = [
+    ...applications.map((application) => ({
+      id: `application-${application.id}`,
+      kind: 'application',
+      title: 'New candidate applied',
+      description: `${application.studentName || 'A student'} applied for ${application.role || 'a job'}`,
+      timestamp: application.created_at,
+    })),
+    ...jobs.filter((job) => job.status === 'Active').map((job) => ({
+      id: `job-${job.id}`,
+      kind: 'job',
+      title: 'New job published',
+      description: `${job.company || recruiterProfile?.company || 'Your company'} posted ${job.title}`,
+      timestamp: job.createdAt,
+    })),
+  ].filter((event) => event.timestamp && !Number.isNaN(new Date(event.timestamp).getTime()))
+    .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)).slice(0, 6);
+
+  const formatActivityTime = (timestamp) => {
+    const elapsed = Math.max(0, Date.now() - new Date(timestamp).getTime());
+    const minutes = Math.floor(elapsed / 60000);
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes} min${minutes === 1 ? '' : 's'} ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+    const days = Math.floor(hours / 24);
+    if (days < 7) return `${days} day${days === 1 ? '' : 's'} ago`;
+    return new Date(timestamp).toLocaleDateString();
+  };
 
   const handleStatusChange = async (appId, newStatus) => {
     try {
@@ -265,45 +293,22 @@ export default function RecruiterOverview() {
 
         {/* Application Activity */}
         <Card className="p-5">
-          <CardHeader>Live Recruitment Activity</CardHeader>
+          <CardHeader>Recent Recruitment Activity</CardHeader>
 
           <div className="space-y-4">
-            {[
-              {
-                title: 'New candidate applied',
-                desc: 'Aarav Sharma applied for Frontend Developer Intern',
-                time: '15 mins ago',
-                icon: Users
-              },
-              {
-                title: 'Interview feedback logged',
-                desc: 'Rhea Sengupta moved to Shortlisted stage',
-                time: '2 hours ago',
-                icon: CheckCircle2
-              },
-              {
-                title: 'New job published',
-                desc: 'Node.js Backend Developer drive opened to campus',
-                time: '1 day ago',
-                icon: Briefcase
-              },
-              {
-                title: 'Offer accepted',
-                desc: 'Kunal Patel accepted Frontend Developer Intern offer',
-                time: '2 days ago',
-                icon: Building2
-              }
-            ].map((act, idx) => {
-              const Icon = act.icon;
+            {recentActivity.length === 0 ? (
+              <p className="py-8 text-center text-sm text-mute">New applications and published jobs will appear here.</p>
+            ) : recentActivity.map((act) => {
+              const Icon = act.kind === 'application' ? Users : Briefcase;
               return (
-                <div key={idx} className="flex gap-3 items-start">
+                <div key={act.id} className="flex gap-3 items-start">
                   <div className="w-8 h-8 rounded-full bg-lav text-p grid place-items-center shrink-0 mt-0.5">
                     <Icon className="w-4 h-4" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-semibold text-ink leading-tight">{act.title}</p>
-                    <p className="text-xs text-mute mt-0.5">{act.desc}</p>
-                    <p className="text-[11px] text-mute/70 mt-0.5">{act.time}</p>
+                    <p className="text-xs text-mute mt-0.5">{act.description}</p>
+                    <p className="text-[11px] text-mute/70 mt-0.5">{formatActivityTime(act.timestamp)}</p>
                   </div>
                 </div>
               );

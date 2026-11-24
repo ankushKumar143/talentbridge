@@ -29,7 +29,7 @@ def user_out(user: User) -> UserOut:
     return UserOut(id=user.id, name=user.name, email=user.email, role=user.role, profile=json.loads(user.profile_json or "{}"))
 
 def job_out(job: Job) -> JobOut:
-    return JobOut(id=job.id, recruiter_id=job.recruiter_id, title=job.title, company=job.company, description=job.description, data=json.loads(job.data_json or "{}"), status=job.status)
+    return JobOut(id=job.id, recruiter_id=job.recruiter_id, title=job.title, company=job.company, description=job.description, data=json.loads(job.data_json or "{}"), status=job.status, created_at=job.created_at)
 
 @app.get("/api/health")
 def health(db: Session = Depends(get_db)):
