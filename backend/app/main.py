@@ -227,6 +227,44 @@ def apply_to_job(job_id: int, data: ApplyRequest, user: User = Depends(require_r
     db.refresh(application)
     return {"id": application.id, "job_id": job.id, "status": application.status}
 
+def resume_text_for_search(resume: dict) -> str:
+    """Flatten parsed and profile resume fields without assuming every item is text."""
+    if not isinstance(resume, dict):
+        return ""
+    profile = resume.get("profile") if isinstance(resume.get("profile"), dict) else {}
+    parts = []
+
+    skills = resume.get("skills") or profile.get("skills") or []
+    if isinstance(skills, list):
+        for skill in skills:
+            if isinstance(skill, str):
+                parts.append(skill)
+            elif isinstance(skill, dict):
+                parts.extend(str(skill[key]) for key in ("name", "n", "skill") if skill.get(key))
+
+    experience = resume.get("experience") or []
+    if isinstance(experience, list):
+        for item in experience:
+            if isinstance(item, str):
+                parts.append(item)
+            elif isinstance(item, dict):
+                parts.extend(str(item[key]) for key in ("title", "role", "company", "summary", "description") if item.get(key))
+
+    projects = resume.get("projects") or []
+    if isinstance(projects, list):
+        for project in projects:
+            if isinstance(project, str):
+                parts.append(project)
+            elif isinstance(project, dict):
+                parts.extend(str(project[key]) for key in ("title", "name", "description", "summary") if project.get(key))
+                technologies = project.get("technologies") or project.get("tech_stack") or []
+                if isinstance(technologies, list):
+                    parts.extend(str(technology) for technology in technologies if isinstance(technology, (str, int, float)))
+                elif isinstance(technologies, str):
+                    parts.append(technologies)
+    return " ".join(part.strip() for part in parts if part and part.strip())
+
+
 @app.get("/api/applications/mine")
 def my_applications(user: User = Depends(current_user), db: Session = Depends(get_db)):
     if user.role == "student":
@@ -238,8 +276,9 @@ def my_applications(user: User = Depends(current_user), db: Session = Depends(ge
         job = db.get(Job, application.job_id)
         student = db.get(User, application.student_id)
         resume = json.loads(application.resume_json or "{}")
-        profile = resume.get("profile", {})
-        parsed_candidate = resume.get("candidate", {})
+        if not isinstance(resume, dict):
+            resume = {}
+        profile = resume.get("profile") if isinstance(resume.get("profile"), dict) else {}
         result.append({"id": application.id, "job_id": application.job_id, "student_id": application.student_id,
             "status": application.status, "resume": resume, "created_at": application.created_at,
             "company": job.company if job else "", "role": job.title if job else "",
@@ -247,7 +286,7 @@ def my_applications(user: User = Depends(current_user), db: Session = Depends(ge
             "student_email": profile.get("email") or (student.email if student else ""),
             "student_phone": profile.get("phone", ""), "college": profile.get("college", ""),
             "degree": profile.get("degree", ""), "skills": resume.get("skills", profile.get("skills", [])),
-            "resume_text": " ".join(resume.get("skills", []) + [x.get("summary", "") for x in resume.get("experience", []) if isinstance(x, dict)] + resume.get("projects", [])) if resume else "",
+            "resume_text": resume_text_for_search(resume),
             "resume_name": resume.get("fileName", "")})
     return result
 
