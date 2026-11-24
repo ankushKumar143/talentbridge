@@ -26,7 +26,7 @@ export default function RecruiterOverview() {
   const navigate = useNavigate();
   const { recruiterProfile } = useAuth();
   const { jobs } = useJobs();
-  const { applications, updateApplicationStatus } = useApplications();
+  const { applications, applicationsLoading, applicationsError, refreshApplications, updateApplicationStatus } = useApplications();
   const { showToast } = useToast();
 
   const [selectedCandidate, setSelectedCandidate] = useState(null);
@@ -35,7 +35,9 @@ export default function RecruiterOverview() {
   // Dynamic Metrics Calculation directly from shared Context state
   const totalJobs = jobs.length;
   const activeJobs = jobs.filter((j) => j.status === 'Active').length;
+  const hasApplicationData = !applicationsLoading && !applicationsError;
   const totalApplications = applications.length;
+  const applicationsThisWeek = applications.filter((application) => application.created_at && Date.now() - new Date(application.created_at).getTime() < 7 * 24 * 60 * 60 * 1000).length;
   const shortlistedCount = applications.filter((a) => a.status === 'Shortlisted').length;
   const acceptedCount = applications.filter((a) => a.status === 'Accepted').length;
   const rejectedCount = applications.filter((a) => a.status === 'Rejected').length;
@@ -106,6 +108,8 @@ export default function RecruiterOverview() {
         </Button>
       </div>
 
+      {applicationsError && <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-err"><span>Applications could not be loaded: {applicationsError}</span><Button variant="ghost" size="sm" disabled={applicationsLoading} onClick={() => refreshApplications().catch(() => {})}>{applicationsLoading ? 'Refreshing…' : 'Retry'}</Button></div>}
+
       {/* 7 Required Metrics Grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
         <StatCard
@@ -128,16 +132,16 @@ export default function RecruiterOverview() {
         <StatCard
           icon={Users}
           label="Applications Received"
-          value={totalApplications}
+          value={hasApplicationData ? totalApplications : '—'}
           tone="bg-indigo-50 text-indigo-600"
-          trend="+5 this week"
+          trend={`+${applicationsThisWeek} this week`}
           trendType="positive"
           className="min-w-0"
         />
         <StatCard
           icon={Clock}
           label="Pending / Review"
-          value={pendingCount}
+          value={hasApplicationData ? pendingCount : '—'}
           tone="bg-amber-50 text-warn"
           trend="Needs action"
           trendType="warning"
@@ -146,7 +150,7 @@ export default function RecruiterOverview() {
         <StatCard
           icon={CheckCircle2}
           label="Shortlisted"
-          value={shortlistedCount}
+          value={hasApplicationData ? shortlistedCount : '—'}
           tone="bg-emerald-50 text-ok"
           trend="Interview stage"
           trendType="positive"
@@ -155,7 +159,7 @@ export default function RecruiterOverview() {
         <StatCard
           icon={CheckCircle2}
           label="Accepted"
-          value={acceptedCount}
+          value={hasApplicationData ? acceptedCount : '—'}
           tone="bg-emerald-100 text-emerald-800"
           trend="Offers rolled out"
           trendType="positive"
@@ -164,7 +168,7 @@ export default function RecruiterOverview() {
         <StatCard
           icon={XCircle}
           label="Rejected"
-          value={rejectedCount}
+          value={hasApplicationData ? rejectedCount : '—'}
           tone="bg-red-50 text-err"
           trend="Closed profiles"
           trendType="neutral"
@@ -200,7 +204,10 @@ export default function RecruiterOverview() {
               </tr>
             </thead>
             <tbody className="divide-y divide-line/60">
-              {recentApplications.map((app) => (
+              {applicationsLoading ? <tr><td colSpan="6" className="py-8 text-center text-sm text-mute">Loading applications…</td></tr>
+                : applicationsError ? <tr><td colSpan="6" className="py-8 text-center text-sm text-err">Application data is unavailable. Use Retry above.</td></tr>
+                  : recentApplications.length === 0 ? <tr><td colSpan="6" className="py-8 text-center text-sm text-mute">No applications have been submitted to your jobs yet.</td></tr>
+                    : recentApplications.map((app) => (
                 <tr key={app.id} className="hover:bg-bg/50 transition-colors group">
                   <td className="py-3.5 pr-4">
                     <p className="font-semibold text-ink leading-tight">{app.studentName}</p>
@@ -211,8 +218,8 @@ export default function RecruiterOverview() {
                     <p className="text-xs text-mute">{app.company}</p>
                   </td>
                   <td className="py-3.5 pr-4 text-xs">
-                    <p className="text-ink font-medium">{app.college || 'NIT'}</p>
-                    <p className="text-mute">{app.degree || 'B.Tech CSE'}</p>
+                    <p className="text-ink font-medium">{app.college || 'Not provided'}</p>
+                    <p className="text-mute">{app.degree || 'Not provided'}</p>
                   </td>
                   <td className="py-3.5 pr-4 text-xs text-mute font-medium">
                     {app.appliedDate || app.date}

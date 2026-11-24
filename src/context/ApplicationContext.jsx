@@ -1,6 +1,5 @@
-﻿import React, { createContext, useContext, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
-import { INITIAL_ACTIVITY, INITIAL_NOTIFICATIONS } from '../data/mockData';
 import { useAuth } from './AuthContext';
 import { apiRequest } from '../api/client';
 
@@ -13,16 +12,51 @@ const mapApplication = (row) => ({ ...row, jobId: row.job_id, studentId: row.stu
 
 export function ApplicationProvider({ children }) {
   const { currentUser } = useAuth();
-  const [applications, setApplications] = useLocalStorage('tb_applications', []);
+  const [applications, setApplications] = useState([]);
+  const [applicationsLoading, setApplicationsLoading] = useState(false);
+  const [applicationsError, setApplicationsError] = useState('');
   const [activities, setActivities] = useLocalStorage('tb_activity', []);
   const [notifications, setNotifications] = useLocalStorage('tb_notifications', []);
 
   useEffect(() => {
-    if (!currentUser) { setApplications([]); setNotifications([]); return; }
-    apiRequest('/api/applications/mine').then((rows) => setApplications(rows.map(mapApplication)))
-      .catch((err) => console.error('Could not load applications:', err.message));
-    apiRequest('/api/notifications').then(setNotifications).catch((err) => console.error('Could not load notifications:', err.message));
+    let active = true;
+    setApplications([]);
+    setApplicationsError('');
+    if (!currentUser) {
+      setApplicationsLoading(false);
+      setNotifications([]);
+      return () => { active = false; };
+    }
+    setApplicationsLoading(true);
+    apiRequest('/api/applications/mine').then((rows) => {
+      if (active) setApplications(Array.isArray(rows) ? rows.map(mapApplication) : []);
+    }).catch((err) => {
+      if (!active) return;
+      setApplications([]);
+      setApplicationsError(err.message || 'Could not load applications from the server.');
+      console.error('Could not load applications:', err.message);
+    }).finally(() => { if (active) setApplicationsLoading(false); });
+    apiRequest('/api/notifications').then((rows) => { if (active) setNotifications(rows); })
+      .catch((err) => console.error('Could not load notifications:', err.message));
+    return () => { active = false; };
   }, [currentUser?.id]);
+
+  const refreshApplications = async () => {
+    setApplicationsLoading(true);
+    setApplicationsError('');
+    try {
+      const rows = await apiRequest('/api/applications/mine');
+      const mapped = Array.isArray(rows) ? rows.map(mapApplication) : [];
+      setApplications(mapped);
+      return mapped;
+    } catch (err) {
+      setApplications([]);
+      setApplicationsError(err.message || 'Could not load applications from the server.');
+      throw err;
+    } finally {
+      setApplicationsLoading(false);
+    }
+  };
 
   const appliedJobIds = useMemo(() => new Set(applications.map((item) => item.jobId)), [applications]);
   const isApplied = (jobId) => appliedJobIds.has(jobId);
@@ -74,7 +108,7 @@ export function ApplicationProvider({ children }) {
   };
   const clearNotifications = markNotificationsAsRead;
 
-  const value = { applications, activities, notifications, appliedJobIds, isApplied, applyForJob,
+  const value = { applications, applicationsLoading, applicationsError, refreshApplications, activities, notifications, appliedJobIds, isApplied, applyForJob,
     updateApplicationStatus, markNotificationsAsRead, clearNotifications };
   return <ApplicationContext.Provider value={value}>{children}</ApplicationContext.Provider>;
 }
