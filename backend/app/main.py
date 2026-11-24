@@ -264,6 +264,77 @@ def update_application_status(application_id: int, data: StatusUpdate, user: Use
     db.commit()
     return {"id": application.id, "status": application.status}
 
+@app.get("/api/candidates")
+def candidate_directory(user: User = Depends(require_role("recruiter")), db: Session = Depends(get_db)):
+    """Return current student profiles for the authenticated recruiter's directory."""
+    students = db.scalars(select(User).where(User.role == "student").order_by(User.created_at.desc())).all()
+    result = []
+    for student in students:
+        profile = json.loads(student.profile_json or "{}")
+        resume = profile.get("resume") if isinstance(profile.get("resume"), dict) else {}
+        parsed = resume.get("parsed") if isinstance(resume.get("parsed"), dict) else {}
+        skills = profile.get("skills") or parsed.get("skills") or []
+        if not isinstance(skills, list):
+            skills = []
+        skills = [item.get("n", "") if isinstance(item, dict) else str(item) for item in skills]
+        education = profile.get("education") if isinstance(profile.get("education"), list) else []
+        if not education:
+            parsed_education = parsed.get("education") or {}
+            education = parsed_education.get("entries", []) if isinstance(parsed_education, dict) else parsed_education if isinstance(parsed_education, list) else []
+        projects = profile.get("projects") or parsed.get("projects") or []
+        if not isinstance(projects, list):
+            projects = []
+        candidate = parsed.get("candidate") if isinstance(parsed.get("candidate"), dict) else {}
+        phones = candidate.get("phone_numbers") if isinstance(candidate.get("phone_numbers"), list) else []
+        certifications = profile.get("certifications") or profile.get("certs") or []
+        if not isinstance(certifications, list):
+            certifications = []
+        result.append({
+            "id": student.id,
+            "name": student.name,
+            "email": student.email,
+            "phone": profile.get("phone") or (phones[0] if phones else None),
+            "headline": profile.get("headline") or profile.get("degree") or "Student",
+            "about": profile.get("about") or parsed.get("summary", ""),
+            "college": profile.get("college") or next((item.get("institution") for item in education if isinstance(item, dict) and item.get("institution")), ""),
+            "degree": profile.get("degree") or next((item.get("degree") for item in education if isinstance(item, dict) and item.get("degree")), ""),
+            "cgpa": profile.get("cgpa") or next((item.get("score") for item in education if isinstance(item, dict) and item.get("score")), ""),
+            "skills": list(dict.fromkeys(skill.strip() for skill in skills if isinstance(skill, str) and skill.strip())),
+            "projects": projects,
+            "certifications": certifications,
+            "resumeName": resume.get("fileName", ""),
+            "hasResumeFile": bool(profile.get("resume_file_id")),
+            "createdAt": student.created_at.isoformat() if student.created_at else None,
+        })
+    return result
+
+@app.post("/api/candidates/{student_id}/invite", status_code=201)
+def invite_candidate(student_id: int, user: User = Depends(require_role("recruiter")), db: Session = Depends(get_db)):
+    student = db.get(User, student_id)
+    if not student or student.role != "student":
+        raise HTTPException(404, "Student not found")
+    profile = json.loads(user.profile_json or "{}")
+    company = profile.get("company") or "a recruiting team"
+    create_notification(db, student.id, "recruiter_invite", f"{company} invited you to connect on TalentBridge.")
+    db.commit()
+    return {"message": f"Invitation sent to {student.name}.", "student_id": student.id}
+
+@app.get("/api/candidates/{student_id}/resume-file")
+def candidate_resume_file(student_id: int, user: User = Depends(require_role("recruiter")), db: Session = Depends(get_db)):
+    student = db.get(User, student_id)
+    if not student or student.role != "student":
+        raise HTTPException(404, "Student not found")
+    profile = json.loads(student.profile_json or "{}")
+    file_id = profile.get("resume_file_id")
+    if not isinstance(file_id, str) or not file_id.startswith(f"{student.id}-") or Path(file_id).name != file_id:
+        raise HTTPException(404, "This student has not uploaded an original resume file.")
+    path = Path(__file__).resolve().parent.parent / "uploads" / "resumes" / file_id
+    if not path.is_file():
+        raise HTTPException(404, "The original resume file is unavailable. The student may need to upload it again.")
+    filename = (profile.get("resume") or {}).get("fileName") or f"{student.name}-resume{path.suffix}"
+    media_type = {".pdf": "application/pdf", ".txt": "text/plain; charset=utf-8", ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"}.get(path.suffix.lower(), "application/octet-stream")
+    return FileResponse(path, media_type=media_type, headers={"Content-Disposition": f'inline; filename="{Path(filename).name}"'})
+
 @app.get("/api/saved-jobs")
 def list_saved_jobs(user: User = Depends(require_role("student")), db: Session = Depends(get_db)):
     return db.scalars(select(SavedJob.job_id).where(SavedJob.user_id == user.id).order_by(SavedJob.created_at.desc())).all()

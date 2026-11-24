@@ -1,133 +1,34 @@
-import React from 'react';
-import { FileText, Download, Printer, CheckCircle2, Building2, GraduationCap } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Download, FileText, LoaderCircle } from 'lucide-react';
 import Modal from '../common/Modal';
-import Button from '../common/Button';
+import { apiBlobRequest } from '../../api/client';
 
-export default function ResumePreviewModal({
-  candidate,
-  onClose,
-  onToast
-}) {
-  if (!candidate) return null;
+export default function ResumePreviewModal({ candidate, onClose }) {
+  const [url, setUrl] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  const handleDownload = () => {
-    if (onToast) onToast(`Downloaded ${candidate.resumeName || 'Candidate_Resume.pdf'}`);
-  };
+  useEffect(() => {
+    let active = true;
+    let objectUrl = '';
+    apiBlobRequest(`/api/candidates/${candidate.id}/resume-file`).then((blob) => {
+      if (!active) return;
+      objectUrl = URL.createObjectURL(blob);
+      setUrl(objectUrl);
+    }).catch((err) => {
+      if (active) setError(err.message || 'Could not load this resume.');
+    }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; if (objectUrl) URL.revokeObjectURL(objectUrl); };
+  }, [candidate.id]);
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const isPdf = /\.pdf$/i.test(candidate.resumeName || '');
 
-  return (
-    <Modal
-      title="Resume Document Preview"
-      onClose={onClose}
-      maxWidth="max-w-3xl"
-    >
-      <div className="space-y-4">
-        {/* Top Controls Bar */}
-        <div className="flex items-center justify-between p-3 bg-bg rounded-xl border border-line">
-          <div className="flex items-center gap-2">
-            <FileText className="w-5 h-5 text-p" />
-            <span className="text-sm font-semibold text-ink">
-              {candidate.resumeName || `${candidate.studentName || 'Candidate'}_Resume.pdf`}
-            </span>
-            <span className="text-xs text-mute hidden sm:inline">• Verified Candidate Document</span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              icon={Printer}
-              onClick={handlePrint}
-            >
-              Print
-            </Button>
-            <Button
-              variant="primary"
-              size="sm"
-              icon={Download}
-              onClick={handleDownload}
-            >
-              Download PDF
-            </Button>
-          </div>
-        </div>
-
-        {/* Paper-styled Resume Container */}
-        <div className="p-8 bg-white border border-line shadow-sm rounded-2xl space-y-6 text-ink max-h-[60vh] overflow-y-auto">
-          {/* Header */}
-          <div className="border-b border-line pb-4 text-center">
-            <h2 className="text-2xl font-bold tracking-tight text-ink">
-              {candidate.studentName || 'Aarav Sharma'}
-            </h2>
-            <p className="text-xs text-mute mt-1">
-              {candidate.studentEmail} • {candidate.studentPhone || '+91 98765 43210'} • Bengaluru, India
-            </p>
-            <p className="text-xs text-p font-medium mt-1">
-              Aspiring Software Engineer & Frontend Specialist
-            </p>
-          </div>
-
-          {/* Education */}
-          <div>
-            <h3 className="text-xs font-bold text-ink uppercase tracking-wider border-b border-line pb-1 mb-2">
-              Education
-            </h3>
-            <div className="text-xs space-y-1">
-              <div className="flex justify-between font-semibold">
-                <span>{candidate.college || 'National Institute of Technology'}</span>
-                <span>2023 - 2027</span>
-              </div>
-              <div className="flex justify-between text-mute">
-                <span>{candidate.degree || 'B.Tech in Computer Science and Engineering'}</span>
-                <span className="font-semibold text-ok">8.7 / 10.0 CGPA</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Technical Skills */}
-          <div>
-            <h3 className="text-xs font-bold text-ink uppercase tracking-wider border-b border-line pb-1 mb-2">
-              Technical Proficiencies
-            </h3>
-            <p className="text-xs text-ink/90 leading-relaxed">
-              <b>Core Languages & Frameworks:</b> {candidate.skills ? candidate.skills.join(', ') : 'React.js, JavaScript (ES6+), Python, Node.js, SQL, Tailwind CSS'}
-            </p>
-            <p className="text-xs text-ink/90 mt-1">
-              <b>Tools & Environments:</b> Git, GitHub, Vite, Postman, Linux, VS Code
-            </p>
-          </div>
-
-          {/* Key Projects */}
-          <div>
-            <h3 className="text-xs font-bold text-ink uppercase tracking-wider border-b border-line pb-1 mb-2">
-              Academic & Placement Projects
-            </h3>
-            <div className="space-y-3 text-xs">
-              <div>
-                <p className="font-semibold text-ink">TalentBridge Placement Platform</p>
-                <p className="text-mute mt-0.5">
-                  Architected a responsive single-page campus recruitment portal with React, Tailwind CSS, and client-side state persistence.
-                </p>
-              </div>
-              <div>
-                <p className="font-semibold text-ink">DevPulse Code Analytics</p>
-                <p className="text-mute mt-0.5">
-                  Engineered Git repository analytics dashboard measuring team commit frequency and code review throughput.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex justify-end pt-2">
-          <Button variant="ghost" onClick={onClose}>
-            Close Preview
-          </Button>
-        </div>
-      </div>
-    </Modal>
-  );
+  return <Modal title={`Resume · ${candidate.name}`} onClose={onClose} maxWidth="max-w-5xl">
+    <div className="space-y-3">
+      <div className="flex items-center justify-between gap-3 p-3 rounded-xl border border-line bg-bg"><div className="flex items-center gap-2 min-w-0"><FileText className="w-5 h-5 text-p shrink-0" /><span className="text-sm font-medium text-ink truncate">{candidate.resumeName || 'Resume file'}</span></div>{url && <a href={url} download={candidate.resumeName || 'resume'} className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-p text-white text-xs font-semibold"><Download className="w-3.5 h-3.5" /> Download</a>}</div>
+      {loading && <div className="h-40 grid place-items-center text-sm text-mute"><span className="inline-flex items-center gap-2"><LoaderCircle className="w-4 h-4 animate-spin" />Loading resume…</span></div>}
+      {error && <p role="alert" className="p-3 rounded-xl bg-red-50 border border-red-200 text-sm text-err">{error}</p>}
+      {!loading && url && (isPdf ? <iframe title={`${candidate.name} resume`} src={url} className="w-full h-[72vh] rounded-lg border border-line" /> : <div className="p-8 text-center text-sm text-mute">This file format cannot be previewed in the browser. Use Download to open it.</div>)}
+    </div>
+  </Modal>;
 }
