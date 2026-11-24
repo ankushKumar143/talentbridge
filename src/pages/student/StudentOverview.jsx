@@ -61,7 +61,7 @@ export default function StudentOverview() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-[26px] font-bold text-ink tracking-tight">
-            Good morning, {studentProfile?.first || 'Aarav'}! ðŸ‘‹
+            Good morning, {studentProfile?.first || 'Aarav'}!
           </h1>
           <p className="text-mute mt-1 text-sm">
             Ready to take the next step in your career?

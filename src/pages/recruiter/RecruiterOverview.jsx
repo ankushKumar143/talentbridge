@@ -61,7 +61,7 @@ export default function RecruiterOverview() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-[26px] font-bold text-ink tracking-tight">
-            Recruiter Desk â€¢ {recruiterProfile?.company || 'TechNova Solutions'} ðŸ¢
+            Recruiter Desk · {recruiterProfile?.company || 'TechNova Solutions'}
           </h1>
           <p className="text-mute mt-1 text-sm">
             Welcome back, {recruiterProfile?.first || 'Neha'}! Track campus hiring drives and evaluate candidate pipelines.
@@ -245,7 +245,7 @@ export default function RecruiterOverview() {
                       <Badge status={job.status}>{job.status}</Badge>
                     </div>
                     <p className="text-xs text-mute mt-0.5">
-                      {job.loc} â€¢ {job.mode} â€¢ <span className="text-ink font-medium">{job.pay}</span>
+                      {job.loc} · {job.mode} · <span className="text-ink font-medium">{job.pay}</span>
                     </p>
                   </div>
 

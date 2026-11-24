@@ -133,7 +133,7 @@ export default function Register() {
           Create Your TalentBridge Account
         </h2>
         <p className="mt-1 text-xs text-mute">
-          Connecting Talent with Opportunity â€¢ Join the Campus Placement SaaS
+          Connecting Talent with Opportunity · Join the Campus Placement SaaS
         </p>
       </div>
 
@@ -281,7 +281,7 @@ export default function Register() {
                     <input
                       type="password"
                       required
-                      placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                      placeholder="········"
                       value={recruiterForm.password}
                       onChange={(e) => setRecruiterForm({ ...recruiterForm, password: e.target.value })}
                       className="w-full h-10 px-3 rounded-xl border border-line text-sm focus:border-p focus:outline-none"

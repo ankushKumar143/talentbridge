@@ -94,7 +94,7 @@ export default function Home() {
                   <span>92% Fit</span>
                 </div>
                 <h4 className="text-sm font-bold text-ink mt-2">Frontend Developer Intern</h4>
-                <p className="text-xs text-mute mt-0.5">TechNova Solutions â€¢ Remote</p>
+                <p className="text-xs text-mute mt-0.5">TechNova Solutions · Remote</p>
                 <div className="flex gap-1.5 mt-3">
                   <span className="text-[11px] px-2 py-0.5 rounded-md bg-white border border-line">React.js</span>
                   <span className="text-[11px] px-2 py-0.5 rounded-md bg-white border border-line">JavaScript</span>
@@ -107,7 +107,7 @@ export default function Home() {
                   <span>Shortlisted</span>
                 </div>
                 <h4 className="text-sm font-bold text-ink mt-2">Aarav Sharma</h4>
-                <p className="text-xs text-mute mt-0.5">B.Tech CSE â€¢ 8.7 CGPA</p>
+                <p className="text-xs text-mute mt-0.5">B.Tech CSE · 8.7 CGPA</p>
                 <p className="text-[11px] text-mute mt-2 flex items-center gap-1">
                   <Clock className="w-3 h-3 text-ok" /> Technical interview round scheduled
                 </p>
@@ -119,9 +119,9 @@ export default function Home() {
                   <span>ATS Passed</span>
                 </div>
                 <h4 className="text-sm font-bold text-ink mt-2">Aarav_Sharma_Resume.pdf</h4>
-                <p className="text-xs text-mute mt-0.5">Uploaded Yesterday â€¢ 182 KB</p>
+                <p className="text-xs text-mute mt-0.5">Uploaded Yesterday · 182 KB</p>
                 <span className="inline-block mt-3 text-[11px] font-semibold text-p">
-                  Instant Recruiter Download â†’
+                  Instant Recruiter Download →
                 </span>
               </div>
             </div>

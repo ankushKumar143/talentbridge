@@ -103,7 +103,7 @@ export default function RecruiterManageJobs() {
                         <p className="font-semibold text-ink leading-tight">{job.title}</p>
                         <p className="text-xs text-mute mt-0.5 flex items-center gap-1.5">
                           <MapPin className="w-3 h-3 text-mute/80" />
-                          {job.loc} â€¢ {job.mode} â€¢ {job.type}
+                          {job.loc} · {job.mode} · {job.type}
                         </p>
                       </td>
 

@@ -74,7 +74,7 @@ export default function Login() {
           Sign In to TalentBridge
         </h2>
         <p className="mt-1 text-xs text-mute">
-          Connecting Talent with Opportunity â€¢ Campus Placement Portal
+          Connecting Talent with Opportunity · Campus Placement Portal
         </p>
       </div>
 
@@ -147,7 +147,7 @@ export default function Login() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                  placeholder="········"
                   className="w-full h-10 pl-9 pr-3 rounded-xl border border-line text-sm focus:border-p focus:outline-none"
                 />
               </div>
@@ -183,7 +183,7 @@ export default function Login() {
                 role === 'recruiter' ? 'bg-ink hover:bg-slate-800' : ''
               }`}
             >
-              {submitting ? 'Signing inâ€¦' : `Sign In as ${role === 'student' ? 'Student' : 'Recruiter'}`}
+              {submitting ? 'Signing in...' : `Sign In as ${role === 'student' ? 'Student' : 'Recruiter'}`}
               <ArrowRight className="w-4 h-4 ml-1" />
             </Button>
           </form>

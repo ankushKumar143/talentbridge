@@ -148,7 +148,7 @@ def _parse_education(lines: list[str]) -> dict:
 def _parse_projects(lines: list[str]) -> list[dict]:
     projects = []
     current = None
-    bullet_re = re.compile(r"^\s*[-*•▪◦�]\s*")
+    bullet_re = re.compile(r"^\s*[-*•▪◦]\s*")
     sentence_start = re.compile(r"^(?:built|implemented|developed|designed|created|deployed|configured|added|worked|used|integrated|responsible|contributed|engineered|led|managed|delivered|optimized|improved|•)\b", re.I)
 
     def starts_project(content: str) -> bool:
@@ -156,7 +156,7 @@ def _parse_projects(lines: list[str]) -> list[dict]:
         # new card only for a concise, title-like heading, never for prose.
         if sentence_start.search(content) or content.endswith((".", ";", ",")):
             return False
-        if re.search(r"\s+[—–�]\s+", content) or " | " in content:
+        if re.search(r"\s+[—–]\s+", content) or " | " in content:
             return True
         words = content.split()
         if len(content) <= 90 and len(words) <= 7 and not re.search(r"[.!?]", content):
@@ -187,7 +187,7 @@ def _parse_projects(lines: list[str]) -> list[dict]:
         if not content: continue
         if current is None or starts_project(content):
             parts = [x.strip() for x in re.split(r"\s*[|]\s*", content) if x.strip()]
-            dash_parts = re.split(r"\s+[—–�]\s+", parts[0], maxsplit=1)
+            dash_parts = re.split(r"\s+[—–]\s+", parts[0], maxsplit=1)
             title = dash_parts[0].strip(" :-–—")
             technologies = []
             inline_description = dash_parts[1].strip() if len(dash_parts) > 1 else ""
